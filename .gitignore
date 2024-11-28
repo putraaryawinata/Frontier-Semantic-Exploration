@@ -1,0 +1,7 @@
+# Ignore objectgoal_hm3d dataset
+data/objectgoal_hm3d/
+data/scene_datasets/
+data/object_norm_inv_perplexity.npy
+data/objectgoal_hm3d.zip
+data/objectnav_hm3d_v2.zip
+tmp/
