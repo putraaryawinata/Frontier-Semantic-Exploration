@@ -8,3 +8,4 @@ tmp/
 __pycache__/
 tb/
 Rednet/model/
+RedNet/model/rednet_semmap_mp3d_40.pth
