@@ -263,7 +263,7 @@ class Semantic_Mapping(nn.Module):
         self.stair_mask_radius = 30
         self.stair_mask = self.get_mask(self.stair_mask_radius).to(self.device)
 
-    def forward(self, obs, pose_obs, maps_last, poses_last):
+    def forward(self, obs, pose_obs, maps_last, poses_last, eve_angle=0):
         bs, c, h, w = obs.size()
         depth = obs[:, 3, :, :]
 
@@ -271,7 +271,7 @@ class Semantic_Mapping(nn.Module):
             depth, self.camera_matrix, self.device, scale=self.du_scale)
 
         agent_view_t = du.transform_camera_view_t(
-            point_cloud_t, self.agent_height, 0, self.device)
+            point_cloud_t, self.agent_height, eve_angle, self.device)
 
         agent_view_centered_t = du.transform_pose_t(
             agent_view_t, self.shift_loc, self.device)
@@ -383,7 +383,12 @@ class Semantic_Mapping(nn.Module):
 
         map_pred, _ = torch.max(maps2, 1)
 
-        map_pred[:, 0:1, :, :][diff_ob_ex == 1.0] = 0.0
+        if not isinstance(eve_angle, int):
+            map_pred[:, 0:1, :, :][diff_ob_ex == 1.0] = 0.0
+        else:
+            for i in range(eve_angle.shape[0]):
+                if eve_angle[i] == 0:
+                    map_pred[i, 0:1, :, :][diff_ob_ex[i] == 1.0] = 0.0
 
         # stairs view
         rot_mat_stair, trans_mat_stair = get_grid(st_pose, agent_view_stair.size(),
@@ -422,7 +427,12 @@ class Semantic_Mapping(nn.Module):
 
         map_pred_stair, _ = torch.max(maps3, 1)
 
-        map_pred_stair[:, 0:1, :, :][diff_ob_ex == 1.0] = 0.0
+        if not isinstance(eve_angle, int):
+            map_pred_stair[:, 0:1, :, :][diff_ob_ex == 1.0] = 0.0
+        else:
+            for i in range(eve_angle.shape[0]):
+                if eve_angle[i] == 0:
+                    map_pred_stair[i, 0:1, :, :][diff_ob_ex[i] == 1.0] = 0.0
 
 
         return translated, map_pred, map_pred_stair, current_poses

@@ -406,8 +406,11 @@ def main():
         [infos[env_idx]['sensor_pose'] for env_idx in range(num_scenes)])
     ).float().to(device)
 
-    increase_local_map, local_map, _, _ = \
-        sem_map_module(obs, poses, local_map, local_pose)
+    eve_angle = np.asarray(
+        [infos[env_idx]['eve_angle'] for env_idx in range(num_scenes)])
+    
+    increase_local_map, local_map, local_map_stair, local_pose = \
+        sem_map_module(obs, poses, local_map, local_pose, eve_angle)
 
     local_map[:, 0, :, :][local_map[:, 13, :, :] > 0] = 0
 
@@ -538,8 +541,11 @@ def main():
              in range(num_scenes)])
         ).float().to(device)
 
+        eve_angle = np.asarray(
+            [infos[env_idx]['eve_angle'] for env_idx in range(num_scenes)])
+
         increase_local_map, local_map, local_map_stair, local_pose = \
-            sem_map_module(obs, poses, local_map, local_pose)
+            sem_map_module(obs, poses, local_map, local_pose, eve_angle)
 
         increase_map += increase_local_map[:, 1:2, :, :]
         

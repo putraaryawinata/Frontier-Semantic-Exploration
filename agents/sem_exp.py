@@ -71,6 +71,8 @@ class Sem_Exp_Env_Agent(ObjectGoal_Env21):
             self.legend = cv2.imread('docs/legend.png')
             self.vis_image = None
             self.rgb_vis = None
+        
+        self.eve_angle = 0
 
     def reset(self):
         args = self.args
@@ -94,6 +96,10 @@ class Sem_Exp_Env_Agent(ObjectGoal_Env21):
         self.curr_loc = [args.map_size_cm / 100.0 / 2.0,
                          args.map_size_cm / 100.0 / 2.0, 0.]
         self.last_action = None
+
+        self.eve_angle = 0
+        self.eve_angle_old = 0
+        info['eve_angle'] = self.eve_angle
 
         if args.visualize or args.print_images:
             self.vis_image = vu.init_vis_image(self.goal_name, self.legend)
@@ -153,6 +159,7 @@ class Sem_Exp_Env_Agent(ObjectGoal_Env21):
             self.last_action = action['action']
             self.obs = obs
             self.info = info
+            info['eve_angle'] = self.eve_angle
 
             info['g_reward'] += rew
 
@@ -184,6 +191,7 @@ class Sem_Exp_Env_Agent(ObjectGoal_Env21):
 
         # Get Map prediction
         map_pred = np.rint(planner_inputs['map_pred'])
+        exp_pred = np.rint(planner_inputs['exp_pred'])
         goal = planner_inputs['goal']
 
         # Get pose prediction and global policy planning window
@@ -258,7 +266,7 @@ class Sem_Exp_Env_Agent(ObjectGoal_Env21):
             self.replan_count = 0
 
         # Deterministic Local Policy
-        if (stop and planner_inputs['found_goal'] == 1) :
+        if (stop and planner_inputs['found_goal'] == 1) or self.replan_count > 26:
             action = 0  # Stop
         else:
             (stg_x, stg_y) = stg
@@ -272,7 +280,20 @@ class Sem_Exp_Env_Agent(ObjectGoal_Env21):
             if relative_angle > 180:
                 relative_angle -= 360
 
-            if relative_angle > self.args.turn_angle / 2.:
+            ## add the evelution angle
+            eve_start_x = int(5 * math.sin(angle_st_goal) + start[0])
+            eve_start_y = int(5 * math.cos(angle_st_goal) + start[1])
+            if eve_start_x > map_pred.shape[0]: eve_start_x = map_pred.shape[0] 
+            if eve_start_y > map_pred.shape[0]: eve_start_y = map_pred.shape[0] 
+            if eve_start_x < 0: eve_start_x = 0 
+            if eve_start_y < 0: eve_start_y = 0 
+            if exp_pred[eve_start_x, eve_start_y] == 0 and self.eve_angle > -60:
+                action = 5
+                self.eve_angle -= 30
+            elif exp_pred[eve_start_x, eve_start_y] == 1 and self.eve_angle < 0:
+                action = 4
+                self.eve_angle += 30
+            elif relative_angle > self.args.turn_angle / 2.:
                 action = 3  # Right
             elif relative_angle < -self.args.turn_angle / 2.:
                 action = 2  # Left
